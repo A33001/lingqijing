@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>灵棋经在线占卜</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Serif SC', serif;
+      background-color: #f4f1ea;
+      color: #2c2c2c;
+      background-image: url("image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4c5b3' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    /* 棋子外层容器 - 负责飞入动画 */
+    .chess-piece {
+      width: 60px;
+      height: 60px;
+      position: relative;
+      perspective: 1000px;
+      margin: 0 4px;
+      /* 飞入动画 */
+      animation: flyIn 0.6s ease-out forwards;
+      opacity: 0;
+      transform: translateY(-20px) scale(0.5);
+    }
+
+    /* 棋子内层容器 - 负责翻转动画 */
+    .chess-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      /* 关键：翻转过渡效果 */
+      transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    /* 当需要显示背面时，旋转内层容器 */
+    .chess-piece.show-back .chess-inner {
+      transform: rotateY(180deg);
+    }
+
+    /* 正反面通用样式 */
+    .piece-face,
+    .piece-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border: 2px solid #5d4037;
+      background-color: #fff8e1;
+      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* 正面 - 默认朝向观众 */
+    .piece-face {
+      transform: rotateY(0deg);
+    }
+
+    /* 背面 - 默认背向观众 */
+    .piece-back {
+      background-color: #5d4037;
+      transform: rotateY(180deg);
+    }
+
+    /* 图片样式 */
+    .piece-face img,
+    .piece-back img {
+      width: 85%;
+      height: 85%;
+      object-fit: contain;
+    }
+
+    /* 摇晃动画 */
+    .shake-anim {
+      animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both infinite;
+    }
+
+    @keyframes shake {
+
+      10%,
+      90% {
+        transform: translate3d(-1px, 0, 0) rotate(-2deg);
+      }
+
+      20%,
+      80% {
+        transform: translate3d(2px, 0, 0) rotate(4deg);
+      }
+
+      30%,
+      50%,
+      70% {
+        transform: translate3d(-4px, 0, 0) rotate(-8deg);
+      }
+
+      40%,
+      60% {
+        transform: translate3d(4px, 0, 0) rotate(8deg);
+      }
+    }
+
+    @keyframes flyIn {
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="app" class="min-h-screen flex flex-col items-center py-8 px-4 max-w-5xl mx-auto">
+    <header class="text-center mb-8">
+      <h1 class="text-4xl font-bold text-amber-900 mb-2">灵棋经在线占卜</h1>
+      <p class="text-amber-700 text-sm">心诚则灵 · 默念所求之事</p>
+    </header>
+
+    <!-- 模式切换 -->
+    <div class="flex bg-amber-100 rounded-lg p-1 mb-8 shadow-inner">
+      <button @click="mode = 'manual'" :class="mode === 'manual' ? 'bg-amber-800 text-white' : 'text-amber-800'"
+        class="px-6 py-2 rounded-md transition-all font-semibold">
+        手动起卦
+      </button>
+      <button @click="mode = 'auto'" :class="mode === 'auto' ? 'bg-amber-800 text-white' : 'text-amber-800'"
+        class="px-6 py-2 rounded-md transition-all font-semibold">
+        模拟摇卦
+      </button>
+    </div>
+
+    <!-- 手动模式 -->
+    <div v-if="mode === 'manual'" class="w-full max-w-md bg-white p-6 rounded-xl shadow-lg border border-amber-200">
+      <div class="space-y-4">
+        <div v-for="type in ['shang', 'zhong', 'xia']" :key="type" class="flex items-center justify-between">
+          <label class="text-lg font-bold text-amber-900 w-16">
+            {{ type === 'shang' ? '上' : type === 'zhong' ? '中' : '下' }}
+          </label>
+          <div class="flex space-x-2">
+            <button v-for="n in 5" :key="n" @click="manualInput[type] = n - 1"
+              :class="manualInput[type] === n - 1 ? 'bg-amber-600 text-white' : 'bg-gray-200 text-gray-600'"
+              class="w-10 h-10 rounded-full font-bold transition-colors">
+              {{ n - 1 }}
+            </button>
+          </div>
+        </div>
+        <button @click="queryManual"
+          class="w-full bg-amber-800 hover:bg-amber-900 text-white font-bold py-3 rounded-lg shadow mt-4 transition-colors">
+          查询卦象
+        </button>
+      </div>
+    </div>
+
+    <!-- 模拟摇卦模式 -->
+    <div v-if="mode === 'auto'" class="w-full flex flex-col items-center">
+      <div class="mb-6 relative h-48 w-full flex items-center justify-center">
+        <div v-if="isShaking" class="text-amber-800 font-bold text-xl shake-anim">正在摇卦...</div>
+        <div v-else-if="!resultData" class="text-center">
+          <p class="text-amber-900 mb-4">心诚则灵，默念所求之事</p>
+          <button @click="startShake"
+            class="bg-amber-700 hover:bg-amber-800 text-white px-8 py-3 rounded-full text-lg font-bold shadow-lg transform hover:scale-105 transition-all">
+            开始摇卦
+          </button>
+        </div>
+
+        <!-- 棋子展示 -->
+        <div v-if="resultData && !isShaking"
+          class="grid grid-rows-3 gap-4 p-4 bg-amber-50 rounded-xl border-2 border-amber-200">
+          <div v-for="row in ['shang', 'zhong', 'xia']" :key="row" class="flex justify-center">
+            <div v-for="(piece, idx) in pieces[row]" :key="piece.id" class="chess-piece"
+              :style="{ animationDelay: idx * 0.05 + 's' }" :class="{ 'show-back': !piece.isFace }">
+              <div class="chess-inner">
+                <!-- 正面 -->
+                <div class="piece-face">
+                  <img :src="piece.type + '.svg'" :alt="piece.type" @error="handleImgError">
+                </div>
+                <!-- 背面 -->
+                <div class="piece-back">
+                  <img src="back.svg" alt="back" @error="handleImgError">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button v-if="resultData && !isShaking" @click="resetShake" class="text-amber-700 underline text-sm mt-2">
+        再测一次
+      </button>
+    </div>
+
+    <!-- 解卦结果 -->
+    <div v-if="resultData" class="w-full mt-8 bg-white rounded-xl shadow-xl overflow-hidden border border-amber-200">
+      <div class="bg-amber-800 text-white p-6 text-center">
+        <h2 class="text-3xl font-bold mb-2">{{ resultData.name }}</h2>
+        <p class="text-amber-200">{{ resultData.image }}</p>
+        <p class="text-sm mt-2 opacity-80">卦成：{{ resultData.composition }}</p>
+      </div>
+      <div class="p-6 space-y-6 text-justify leading-relaxed text-gray-800">
+        <div v-for="item in displayFields" :key="item.key" class="border-b border-amber-100 pb-4 last:border-0">
+          <h3 class="font-bold text-amber-900 mb-2 text-lg">{{ item.label }}</h3>
+          <p class="whitespace-pre-wrap">{{ item.value }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 错误提示 -->
+    <div v-if="error" class="mt-6 text-red-600 bg-red-50 p-4 rounded border border-red-200 max-w-2xl">
+      {{ error }}
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, reactive, computed, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const mode = ref('manual');
+        const isShaking = ref(false);
+        const resultData = ref(null);
+        const pieces = reactive({ shang: [], zhong: [], xia: [] });
+        const manualInput = reactive({ shang: 0, zhong: 0, xia: 0 });
+        const db = ref([]);
+        const error = ref('');
+        let pieceIdCounter = 0;
+
+        const cleanData = (data) => {
+          return data.map(item => {
+            const newItem = {};
+            Object.keys(item).forEach(key => {
+              const cleanKey = key.trim();
+              let val = item[key];
+              if (typeof val === 'string') val = val.trim();
+              newItem[cleanKey] = val;
+            });
+            return newItem;
+          });
+        };
+
+        const handleImgError = (e) => {
+          const img = e.target;
+          img.style.display = 'none';
+          const type = img.alt;
+          img.parentElement.innerHTML = type === 'back' ? '背' :
+            type === 'shang' ? '上' :
+              type === 'zhong' ? '中' : '下';
+          img.parentElement.classList.add('font-bold', 'text-amber-900', 'text-lg');
+        };
+
+        onMounted(async () => {
+          try {
+            const res = await fetch('lingqi.json');
+            if (!res.ok) throw new Error(`HTTP 错误！状态码：${res.status}`);
+            const json = await res.json();
+            db.value = cleanData(json);
+          } catch (e) {
+            console.error('数据加载失败:', e);
+            error.value = `数据加载失败：${e.message}\n请检查:\n1. lingqi.json 文件是否在同目录\n2. 是否通过本地服务器访问 (不是直接双击打开)`;
+          }
+        });
+
+        const findGua = (s, z, x) => {
+          const id = `${s}${z}${x}`;
+          return db.value.find(item => item.id === id) || null;
+        };
+
+        const createPiece = (type, isFace) => ({
+          id: pieceIdCounter++,
+          type,
+          isFace
+        });
+
+        const generatePieces = (s, z, x) => {
+          const createRow = (count, type) => {
+            const arr = [];
+            for (let i = 0; i < 4; i++) {
+              // 初始全部生成正面，稍后翻转以触发动画
+              arr.push(createPiece(type, true));
+            }
+            return arr;
+          };
+          pieces.shang = createRow(s, 'shang');
+          pieces.zhong = createRow(z, 'zhong');
+          pieces.xia = createRow(x, 'xia');
+
+          // 延迟翻转：等待飞入动画开始后，再更新为实际的正反面状态
+          setTimeout(() => {
+            const updateRow = (rowArr, count) => {
+              rowArr.forEach((piece, idx) => {
+                piece.isFace = idx < count;
+              });
+            };
+            updateRow(pieces.shang, s);
+            updateRow(pieces.zhong, z);
+            updateRow(pieces.xia, x);
+          }, 200);
+        };
+
+        const displayFields = computed(() => {
+          if (!resultData.value) return [];
+          const fieldMap = [
+            { key: 'xiang', label: '象曰：' },
+            { key: 'yan', label: '颜曰：' },
+            { key: 'he', label: '何曰：' },
+            { key: 'chen', label: '陈曰：' },
+            { key: 'liu', label: '刘曰：' },
+            { key: 'shi', label: '诗曰：' },
+            { key: 'baihua', label: '白话：' }
+          ];
+          return fieldMap
+            .map(field => ({
+              key: field.key,
+              label: field.label,
+              value: resultData.value[field.key] || ''
+            }))
+            .filter(item => item.value && item.value.trim() !== '');
+        });
+
+        const queryManual = () => {
+          if (db.value.length === 0) {
+            alert('数据未加载完成，请稍后再试');
+            return;
+          }
+          const gua = findGua(manualInput.shang, manualInput.zhong, manualInput.xia);
+          if (gua) {
+            resultData.value = gua;
+            generatePieces(manualInput.shang, manualInput.zhong, manualInput.xia);
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+          } else {
+            alert('未找到对应卦象，请检查输入 (0-4)');
+          }
+        };
+
+        // 修正后的随机算法：模拟 4 枚独立棋子
+        const simulateCoinFlip = () => {
+          let count = 0;
+          for (let i = 0; i < 4; i++) {
+            // 每枚棋子 50% 概率正面
+            if (Math.random() < 0.5) {
+              count++;
+            }
+          }
+          return count;
+        };
+
+        const startShake = () => {
+          if (db.value.length === 0) {
+            alert('数据未加载完成，请稍后再试');
+            return;
+          }
+          isShaking.value = true;
+          resultData.value = null;
+          pieces.shang = []; pieces.zhong = []; pieces.xia = [];
+
+          setTimeout(() => {
+            isShaking.value = false;
+
+            // 使用正确的二项分布概率
+            const s = simulateCoinFlip();
+            const z = simulateCoinFlip();
+            const x = simulateCoinFlip();
+
+            const gua = findGua(s, z, x);
+            if (gua) {
+              resultData.value = gua;
+              generatePieces(s, z, x);
+            }
+          }, 1500);
+        };
+
+        const resetShake = () => {
+          resultData.value = null;
+          pieces.shang = [];
+          pieces.zhong = [];
+          pieces.xia = [];
+        };
+
+        return {
+          mode, isShaking, resultData, pieces, manualInput,
+          displayFields, queryManual, startShake, resetShake,
+          error, handleImgError, db
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+
+</html>

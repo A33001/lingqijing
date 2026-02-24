@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="_图层_2" data-name="图层_2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88.25 88.25">
+  <defs>
+    <style>
+      .cls-1 {
+        stroke-linejoin: bevel;
+      }
+
+      .cls-1, .cls-2 {
+        fill: none;
+        stroke: #cb4134;
+        stroke-linecap: round;
+        stroke-width: 3px;
+      }
+
+      .cls-2 {
+        stroke-miterlimit: 10;
+      }
+
+      .cls-3 {
+        fill: #68341d;
+      }
+    </style>
+  </defs>
+  <g id="_图层_1-2" data-name="图层_1">
+    <circle class="cls-3" cx="44.12" cy="44.12" r="44.12"/>
+    <g>
+      <path class="cls-1" d="M27.09,18.03c-.03,3.54-.29,15.88,2.17,21.41,2.15,4.14,11.55,4.57,15.83,4.59"/>
+      <path class="cls-1" d="M62.09,18.03c.03,3.54.29,15.88-2.17,21.41-2.15,4.14-11.55,4.57-15.83,4.59"/>
+      <line class="cls-2" x1="44.59" y1="9.88" x2="44.59" y2="80.79"/>
+      <path class="cls-2" d="M44.54,28.23s-17.1-.15-16.86,2.7"/>
+      <path class="cls-2" d="M44.67,28.23s17.1-.15,16.86,2.7"/>
+    </g>
+  </g>
+</svg>
